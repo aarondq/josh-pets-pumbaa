@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0021A5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Josh Pets Pumbaa</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    background: #10280d;
+  }
+  body {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    color: white;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
+  #needjs {
+    margin: 16px;
+    background: #fffaf3;
+    color: #1d1a17;
+    border: 4px solid #0021A5;
+    border-radius: 16px;
+    padding: 16px;
+    line-height: 1.4;
+  }
+  #hud {
+    background: #0021A5;
+    padding: calc(6px + env(safe-area-inset-top)) 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #hud .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #hud h1 { margin: 0; font-size: 18px; letter-spacing: -0.03em; }
+  .meters { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .meter { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  #petmeter { gap: 2px; }
+  .hudlabel { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.85; margin-right: 2px; }
+  .count { font-size: 13px; font-weight: 800; margin-right: 2px; }
+  .pip { width: 11px; height: 11px; border-radius: 50%; background: rgba(255,255,255,0.28); display: inline-block; }
+  #petmeter .pip { width: 8px; height: 8px; }
+  #petmeter .pip.on { background: #ffb703; }
+  #hitmeter .pip.on { background: #c6ff4a; box-shadow: 0 0 6px #c6ff4a; }
+  #mute {
+    background: transparent;
+    color: white;
+    border: 2px solid rgba(255,255,255,0.45);
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  #stage { flex: 1; position: relative; min-height: 0; }
+  canvas { width: 100%; height: 100%; display: block; }
+  #controls {
+    height: calc(124px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+    background: #14330f;
+  }
+  #joy {
+    width: 104px;
+    height: 104px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 3px solid rgba(255,255,255,0.4);
+    position: relative;
+    touch-action: none;
+  }
+  #knob {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    left: 28px;
+    top: 28px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.28);
+  }
+  #hint {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  #pet {
+    width: 104px;
+    height: 104px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 4px solid #243024;
+    background: #5c6b57;
+    color: rgba(255,255,255,0.75);
+    font-size: 22px;
+    font-weight: 800;
+  }
+  #pet.ready {
+    background: #FA4616;
+    border-color: #0021A5;
+    color: white;
+    box-shadow: 0 0 0 6px rgba(250, 70, 22, 0.35);
+    animation: pulse 0.9s ease-in-out infinite;
+  }
+  #pet.warn {
+    background: #2e7d32;
+    border-color: #d4ff70;
+    color: white;
+  }
+  @keyframes pulse {
+    50% { transform: scale(1.06); }
+  }
+  #overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: calc(10px + env(safe-area-inset-top)) 12px 12px;
+    background: linear-gradient(to bottom, rgba(8, 22, 6, 0.78), rgba(8, 22, 6, 0.28) 70%, rgba(8, 22, 6, 0.12));
+    box-sizing: border-box;
+  }
+  #overlay.hidden { display: none; }
+  .card {
+    background: #fffaf3;
+    color: #1d1a17;
+    border-radius: 20px;
+    padding: 16px 16px 14px;
+    max-width: 440px;
+    width: 100%;
+    border: 4px solid #0021A5;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.28);
+    box-sizing: border-box;
+    touch-action: pan-y;
+  }
+  .card h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    line-height: 1.05;
+    color: #0021A5;
+    letter-spacing: -0.03em;
+  }
+  .card p { margin: 0 0 10px; line-height: 1.35; font-size: 16px; }
+  .rules { display: flex; gap: 8px; margin: 0 0 12px; }
+  .rule {
+    flex: 1;
+    background: #eef3ff;
+    border-radius: 12px;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.3;
+    color: #0021A5;
+  }
+  .rule span { display: block; color: #1d1a17; font-size: 13px; font-weight: 700; }
+  .card button[data-act] {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 999px;
+    border: 3px solid #0021A5;
+    background: #FA4616;
+    color: white;
+    font-size: 20px;
+    font-weight: 800;
+  }
+  @media (max-width: 360px) {
+    #joy, #pet { width: 88px; height: 88px; }
+    #knob { width: 40px; height: 40px; }
+    #pet { font-size: 18px; }
+    .card h1 { font-size: 24px; }
+    .card p, .rule { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<p id="needjs">Open Josh Pets Pumbaa in Safari or Chrome. A text-message preview will not run the game.</p>
+<header id="hud">
+  <div class="row">
+    <h1>Josh Pets Pumbaa</h1>
+    <button id="mute" type="button">Sound on</button>
+  </div>
+  <div class="meters">
+    <div class="meter" id="petmeter"></div>
+    <div class="meter" id="hitmeter"></div>
+  </div>
+</header>
+<div id="stage"><canvas id="game"></canvas></div>
+<div id="controls">
+  <div id="joy" aria-label="Move Josh"><div id="knob"></div></div>
+  <div id="hint">Drag the stick</div>
+  <button id="pet" type="button">Pet</button>
+</div>
+<div id="overlay" class="hidden"><div class="card" id="card"></div></div>
+<script>
+// Change these two numbers to make the demo longer or shorter.
+const PETS_TO_WIN = 12;
+const FARTS_TO_LOSE = 3;
+
+const PET_RANGE = 132;
+const MIN_SEP = 108;
+const JOSH_SPEED = 245;
+const CLOUD_SPEED = 155;
+const WINDUP_TIME = 0.92;
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const card = document.getElementById('card');
+const joy = document.getElementById('joy');
+const knob = document.getElementById('knob');
+const petBtn = document.getElementById('pet');
+const hint = document.getElementById('hint');
+const muteBtn = document.getElementById('mute');
+const petMeter = document.getElementById('petmeter');
+const hitMeter = document.getElementById('hitmeter');
+
+const keys = new Set();
+let w = 1, h = 1, dpr = 1;
+let joyId = null;
+let endToken = 0;
+let audioCtx = null;
+
+const state = {
+  mode: 'title',
+  pets: 0,
+  farts: 0,
+  gatorsOn: true,
+  shake: 0,
+  muted: false,
+  jx: 0,
+  jy: 0,
+  time: 0
+};
+
+const josh = { x: 0, y: 0, vx: 0, vy: 0, stain: 0, flash: 0 };
+const pumbaa = {
+  x: 0, y: 0, homeX: 0, homeY: 0, tx: 0, ty: 0,
+  facing: 'down', phase: 'idle', phaseT: 0,
+  wanderT: 1, spin: 0, spinning: false, fartAng: 0
+};
+
+let clouds = [];
+let hearts = [];
+let fallers = [];
+let floats = [];
+
+document.getElementById('needjs').remove();
+
+function shortest(from, to) {
+  let d = to - from;
+  d = ((d + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+  return d;
+}
+
+function facingFromAngle(ang) {
+  const dirs = [
+    ['right', 0],
+    ['down', Math.PI / 2],
+    ['left', Math.PI],
+    ['up', -Math.PI / 2]
+  ];
+  let best = 'down';
+  let bestD = 99;
+  for (const [name, a] of dirs) {
+    const diff = Math.abs(shortest(ang, a));
+    if (diff < bestD) { bestD = diff; best = name; }
+  }
+  return best;
+}
+
+function joshHit() { return { x: josh.x, y: josh.y - 30 }; }
+function pumbaaHit() { return { x: pumbaa.x, y: pumbaa.y - 28 }; }
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rect = canvas.getBoundingClientRect();
+  w = Math.max(1, rect.width);
+  h = Math.max(1, rect.height);
+  canvas.width = Math.floor(w * dpr);
+  canvas.height = Math.floor(h * dpr);
+}
+
+function placeCharacters() {
+  pumbaa.x = w * 0.5;
+  pumbaa.y = Math.max(168, Math.min(h * 0.48, h - 180));
+  pumbaa.homeX = pumbaa.x;
+  pumbaa.homeY = pumbaa.y;
+  pumbaa.tx = pumbaa.x;
+  pumbaa.ty = pumbaa.y;
+  pumbaa.facing = 'down';
+  pumbaa.phase = 'idle';
+  pumbaa.phaseT = 0;
+  pumbaa.spinning = false;
+  pumbaa.wanderT = 1.2;
+  josh.x = w * 0.5;
+  josh.y = Math.min(h - 16, pumbaa.y + 150);
+  const gap = Math.hypot(joshHit().x - pumbaaHit().x, joshHit().y - pumbaaHit().y);
+  if (gap < PET_RANGE + 36) josh.y = Math.min(h - 16, pumbaaHit().y + PET_RANGE + 78);
+}
+
+function clampJosh() {
+  josh.x = Math.max(28, Math.min(w - 28, josh.x));
+  josh.y = Math.max(132, Math.min(h - 12, josh.y));
+}
+
+function clampPumbaa() {
+  pumbaa.x = Math.max(46, Math.min(w - 46, pumbaa.x));
+  pumbaa.y = Math.max(150, Math.min(h - 80, pumbaa.y));
+}
+
+function buildMeters() {
+  petMeter.innerHTML = '<span class="hudlabel">Pets</span><span class="count" id="petcount"></span>' +
+    Array.from({ length: PETS_TO_WIN }, () => '<i class="pip"></i>').join('');
+  hitMeter.innerHTML = '<span class="hudlabel">Clouds</span><span class="count" id="hitcount"></span>' +
+    Array.from({ length: FARTS_TO_LOSE }, () => '<i class="pip"></i>').join('');
+  updateHud();
+}
+
+function updateHud() {
+  const pc = document.getElementById('petcount');
+  const hc = document.getElementById('hitcount');
+  if (pc) pc.textContent = state.pets + '/' + PETS_TO_WIN;
+  if (hc) hc.textContent = state.farts + '/' + FARTS_TO_LOSE;
+  petMeter.querySelectorAll('.pip').forEach((el, i) => el.classList.toggle('on', i < state.pets));
+  hitMeter.querySelectorAll('.pip').forEach((el, i) => el.classList.toggle('on', i < state.farts));
+}
+
+function cardHTML(kind) {
+  if (kind === 'win') {
+    return '<h1>He is free.</h1>' +
+      '<p>Pumbaa is free of his gaseous condition. Josh was gentle, and Pumbaa knows he is loved.</p>' +
+      '<button type="button" data-act="play">Play again</button>';
+  }
+  if (kind === 'lose') {
+    return '<h1>You are no longer a gator fan.</h1>' +
+      '<p>Pumbaa has farted you into being a stinky UT fan.</p>' +
+      '<button type="button" data-act="play">Try again</button>';
+  }
+  return '<h1>Josh Pets Pumbaa</h1>' +
+    '<p>Pumbaa is a black boxer who was abused. He needs someone to be gentle and show him love.</p>' +
+    '<p>Pumbaa gets nervous and farts because he is not used to nice humans. Dodge his farts and show him people are nice.</p>' +
+    '<div class="rules"><div class="rule">' + PETS_TO_WIN + ' pets<span>and the gas is gone</span></div>' +
+    '<div class="rule">' + FARTS_TO_LOSE + ' farts<span>and Josh suffers the consequences</span></div></div>' +
+    '<button type="button" data-act="play">Start</button>';
+}
+
+function showCard(kind) {
+  card.innerHTML = cardHTML(kind);
+  overlay.classList.remove('hidden');
+}
+
+function ensureAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  if (!audioCtx) audioCtx = new AC();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function tone(freq, dur, type, gainV, slideTo) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), audioCtx.currentTime + dur);
+  g.gain.setValueAtTime(gainV, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + dur + 0.02);
+}
+
+function sfx(name) {
+  if (state.muted) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  if (name === 'pet') tone(520, 0.12, 'sine', 0.07, 820);
+  if (name === 'windup') tone(200, 0.18, 'triangle', 0.04, 90);
+  if (name === 'fart') {
+    tone(120, 0.22, 'sawtooth', 0.035, 50);
+    const n = Math.floor(audioCtx.sampleRate * 0.22);
+    const buffer = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 220;
+    const g = audioCtx.createGain();
+    g.gain.value = 0.08;
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(audioCtx.destination);
+    src.start();
+  }
+  if (name === 'hit') tone(150, 0.18, 'square', 0.04, 70);
+  if (name === 'lose') tone(320, 0.32, 'triangle', 0.05, 80);
+  if (name === 'start') tone(440, 0.1, 'sine', 0.05, 660);
+  if (name === 'win') {
+    [523, 659, 784, 1046].forEach((f, i) => {
+      setTimeout(() => { if (!state.muted) tone(f, 0.16, 'sine', 0.06); }, i * 120);
+    });
+  }
+}
+
+function buzz(ms) {
+  if (navigator.vibrate) navigator.vibrate(ms);
+}
+
+function spawnHearts(x, y, n) {
+  for (let i = 0; i < n; i++) {
+    hearts.push({
+      x: x + (Math.random() - 0.5) * 24,
+      y: y,
+      vy: -28 - Math.random() * 36,
+      vx: (Math.random() - 0.5) * 30,
+      life: 0.7 + Math.random() * 0.4,
+      age: 0,
+      s: 0.7 + Math.random() * 0.5
+    });
+  }
+}
+
+function spawnFloat(x, y, text) {
+  floats.push({ x, y, text, life: 0.8, age: 0 });
+}
+
+function spawnCloud() {
+  const from = pumbaaHit();
+  const ang = pumbaa.fartAng;
+  const speed = CLOUD_SPEED * (state.pets <= 1 ? 0.72 : 1);
+  clouds.push({
+    x: from.x + Math.cos(ang) * 40,
+    y: from.y + Math.sin(ang) * 40,
+    vx: Math.cos(ang) * speed,
+    vy: Math.sin(ang) * speed,
+    age: 0,
+    life: state.pets <= 1 ? 1.35 : 1.12,
+    max: state.pets <= 1 ? 1.35 : 1.12,
+    hit: false,
+    ang
+  });
+  sfx('fart');
+}
+
+function spawnFaller(x, y, scale, vx) {
+  fallers.push({
+    x, y,
+    vx,
+    vy: -260,
+    rot: (Math.random() - 0.5) * 0.6,
+    vr: (Math.random() - 0.5) * 6,
+    scale,
+    ground: josh.y - 2
+  });
+}
+
+function startWin() {
+  if (state.mode !== 'play') return;
+  state.mode = 'win';
+  clouds = [];
+  pumbaa.phase = 'relieved';
+  pumbaa.spinning = false;
+  spawnHearts(pumbaa.x, pumbaa.y - 70, 14);
+  sfx('win');
+  const token = ++endToken;
+  setTimeout(() => {
+    if (token !== endToken) return;
+    showCard('win');
+  }, 800);
+}
+
+function startLose() {
+  if (state.mode !== 'play') return;
+  state.mode = 'falling';
+  state.gatorsOn = false;
+  spawnFaller(josh.x - 14, josh.y - 70, 0.95, -110);
+  spawnFaller(josh.x + 16, josh.y - 32, 1.25, 120);
+  sfx('lose');
+  buzz(70);
+  const token = ++endToken;
+  setTimeout(() => {
+    if (token !== endToken) return;
+    state.mode = 'lose';
+    showCard('lose');
+  }, 1150);
+}
+
+function startGame() {
+  endToken++;
+  resize();
+  state.mode = 'play';
+  state.pets = 0;
+  state.farts = 0;
+  state.gatorsOn = true;
+  state.shake = 0;
+  clouds = [];
+  hearts = [];
+  fallers = [];
+  floats = [];
+  josh.stain = 0;
+  josh.flash = 0;
+  josh.vx = 0;
+  josh.vy = 0;
+  placeCharacters();
+  updateHud();
+  overlay.classList.add('hidden');
+  ensureAudio();
+  sfx('start');
+}
+
+function tryPet() {
+  if (state.mode !== 'play') return;
+  if (pumbaa.phase !== 'idle') return;
+  const j = joshHit();
+  const p = pumbaaHit();
+  if (Math.hypot(j.x - p.x, j.y - p.y) > PET_RANGE) return;
+  state.pets += 1;
+  pumbaa.phase = 'happy';
+  pumbaa.phaseT = 0;
+  spawnHearts(p.x, p.y - 30, 5);
+  sfx('pet');
+  buzz(12);
+  updateHud();
+}
+
+function beginWindup() {
+  const j = joshHit();
+  const p = pumbaaHit();
+  pumbaa.fartAng = Math.atan2(j.y - p.y, j.x - p.x);
+  pumbaa.facing = facingFromAngle(pumbaa.fartAng + Math.PI);
+  pumbaa.phase = 'windup';
+  pumbaa.phaseT = 0;
+  pumbaa.spin = 0;
+  pumbaa.spinning = true;
+  sfx('windup');
+}
+
+function hitJosh(c) {
+  if (c.hit || state.mode !== 'play') return;
+  c.hit = true;
+  c.life = 0;
+  state.farts += 1;
+  josh.stain = 1;
+  josh.flash = 0.45;
+  state.shake = 10;
+  const j = joshHit();
+  const d = Math.hypot(j.x - c.x, j.y - c.y) || 1;
+  josh.x += ((j.x - c.x) / d) * 26;
+  josh.y += ((j.y - c.y) / d) * 16;
+  clampJosh();
+  spawnFloat(josh.x, josh.y - 78, 'ugh');
+  sfx('hit');
+  buzz(40);
+  updateHud();
+  if (state.farts >= FARTS_TO_LOSE) startLose();
+}
+
+function inputVector() {
+  let x = state.jx;
+  let y = state.jy;
+  let kx = 0, ky = 0;
+  if (keys.has('arrowleft') || keys.has('a')) kx -= 1;
+  if (keys.has('arrowright') || keys.has('d')) kx += 1;
+  if (keys.has('arrowup') || keys.has('w')) ky -= 1;
+  if (keys.has('arrowdown') || keys.has('s')) ky += 1;
+  if (kx || ky) {
+    const m = Math.hypot(kx, ky);
+    x = kx / m;
+    y = ky / m;
+  }
+  return { x, y };
+}
+
+function update(dt) {
+  state.time += dt;
+  if (state.shake > 0) state.shake = Math.max(0, state.shake - dt * 26);
+  if (josh.flash > 0) josh.flash -= dt;
+  if (state.mode !== 'falling' && state.mode !== 'lose') josh.stain = Math.max(0, josh.stain - dt * 0.18);
+
+  const movingMode = state.mode === 'play';
+  const v = movingMode ? inputVector() : { x: 0, y: 0 };
+  josh.vx = v.x * JOSH_SPEED;
+  josh.vy = v.y * JOSH_SPEED;
+  if (movingMode) {
+    josh.x += josh.vx * dt;
+    josh.y += josh.vy * dt;
+    clampJosh();
+    separate();
+  }
+
+  if (pumbaa.phase === 'idle') {
+    if (state.mode === 'play') {
+      pumbaa.wanderT -= dt;
+      if (pumbaa.wanderT <= 0) {
+        const a = Math.random() * Math.PI * 2;
+        pumbaa.tx = pumbaa.homeX + Math.cos(a) * 22;
+        pumbaa.ty = pumbaa.homeY + Math.sin(a) * 16;
+        pumbaa.wanderT = 1.6 + Math.random() * 2.2;
+      }
+      pumbaa.x += (pumbaa.tx - pumbaa.x) * Math.min(1, dt * 0.7);
+      pumbaa.y += (pumbaa.ty - pumbaa.y) * Math.min(1, dt * 0.7);
+      clampPumbaa();
+    }
+    const j = joshHit();
+    const p = pumbaaHit();
+    const next = facingFromAngle(Math.atan2(j.y - p.y, j.x - p.x));
+    if (next !== pumbaa.facing) {
+      const ang = Math.atan2(j.y - p.y, j.x - p.x);
+      const dirs = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+      if (Math.abs(shortest(ang, dirs[pumbaa.facing])) > 0.55) pumbaa.facing = next;
+    }
+  }
+
+  pumbaa.phaseT += dt;
+  if (pumbaa.phase === 'happy' && pumbaa.phaseT > 0.22) beginWindup();
+  if (pumbaa.phase === 'windup') {
+    const spinDur = 0.3;
+    if (pumbaa.phaseT < spinDur) {
+      pumbaa.spinning = true;
+      pumbaa.spin = (pumbaa.phaseT / spinDur) * Math.PI * 2;
+    } else {
+      pumbaa.spinning = false;
+      pumbaa.spin = 0;
+    }
+    if (pumbaa.phaseT >= WINDUP_TIME && state.mode === 'play') {
+      spawnCloud();
+      pumbaa.phase = 'farting';
+      pumbaa.phaseT = 0;
+    }
+  }
+
+  for (let i = clouds.length - 1; i >= 0; i--) {
+    const c = clouds[i];
+    c.age += dt;
+    c.life -= dt;
+    c.x += c.vx * dt;
+    c.y += c.vy * dt;
+    c.x += Math.sin(c.age * 9 + i) * 10 * dt;
+    if (c.age > 0.1 && !c.hit && state.mode === 'play') {
+      const j = joshHit();
+      const reach = 16 + Math.min(12, c.age * 18);
+      if (Math.hypot(j.x - c.x, j.y - c.y) < reach + 16) hitJosh(c);
+    }
+    if (c.life <= 0 || c.x < -40 || c.y < -40 || c.x > w + 40 || c.y > h + 40) clouds.splice(i, 1);
+  }
+
+  if (pumbaa.phase === 'farting' && clouds.length === 0 && state.mode === 'play') {
+    if (state.pets >= PETS_TO_WIN && state.farts < FARTS_TO_LOSE) startWin();
+    else {
+      pumbaa.phase = 'idle';
+      pumbaa.phaseT = 0;
+    }
+  }
+
+  if (state.mode === 'win' && Math.random() < dt * 5) {
+    spawnHearts(pumbaa.x + (Math.random() - 0.5) * 20, pumbaa.y - 60, 1);
+  }
+
+  for (let i = hearts.length - 1; i >= 0; i--) {
+    const heart = hearts[i];
+    heart.age += dt;
+    heart.x += heart.vx * dt;
+    heart.y += heart.vy * dt;
+    if (heart.age > heart.life) hearts.splice(i, 1);
+  }
+  for (let i = floats.length - 1; i >= 0; i--) {
+    floats[i].age += dt;
+    floats[i].y -= 26 * dt;
+    if (floats[i].age > floats[i].life) floats.splice(i, 1);
+  }
+  for (const f of fallers) {
+    f.vy += 1500 * dt;
+    f.x += f.vx * dt;
+    f.y += f.vy * dt;
+    f.rot += f.vr * dt;
+    if (f.y > f.ground) {
+      f.y = f.ground;
+      f.vy = -Math.abs(f.vy) * 0.32;
+      f.vx *= 0.55;
+      f.vr *= 0.45;
+      if (Math.abs(f.vy) < 70) f.vy = 0;
+    }
+  }
+  refreshControls();
+}
+
+function separate() {
+  const j = joshHit();
+  const p = pumbaaHit();
+  let dx = j.x - p.x;
+  let dy = j.y - p.y;
+  let d = Math.hypot(dx, dy);
+  if (d < 0.001) { dx = 0; dy = 1; d = 1; }
+  if (d < MIN_SEP) {
+    const push = MIN_SEP - d;
+    josh.x += (dx / d) * push;
+    josh.y += (dy / d) * push;
+    clampJosh();
+  }
+}
+
+function refreshControls() {
+  const d = Math.hypot(joshHit().x - pumbaaHit().x, joshHit().y - pumbaaHit().y);
+  const inRange = d <= PET_RANGE;
+  const danger = state.mode === 'play' && (pumbaa.phase === 'windup' || pumbaa.phase === 'farting');
+  const can = state.mode === 'play' && pumbaa.phase === 'idle' && inRange;
+  petBtn.classList.toggle('ready', can);
+  petBtn.classList.toggle('warn', danger);
+  petBtn.textContent = danger ? 'Move' : 'Pet';
+  if (state.mode !== 'play') hint.textContent = 'Drag the stick';
+  else if (danger) hint.textContent = 'Step off the green line';
+  else if (can) hint.textContent = 'Tap Pet';
+  else hint.textContent = 'Walk up to Pumbaa';
+}
+
+function roundRect(x, y, rw, rh, r) {
+  const rr = Math.min(r, rw / 2, rh / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + rw, y, x + rw, y + rh, rr);
+  ctx.arcTo(x + rw, y + rh, x, y + rh, rr);
+  ctx.arcTo(x, y + rh, x, y, rr);
+  ctx.arcTo(x, y, x + rw, y, rr);
+  ctx.closePath();
+}
+
+function fillStroke(fill) {
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#161311';
+  ctx.stroke();
+}
+
+function drawYard() {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#79c94a');
+  g.addColorStop(1, '#4f9d30');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  for (let y = 0; y < h; y += 26) {
+    if (Math.floor(y / 26) % 2 === 0) ctx.fillRect(0, y, w, 13);
+  }
+  ctx.fillStyle = 'rgba(90, 60, 30, 0.16)';
+  ctx.beginPath();
+  ctx.ellipse(pumbaa.homeX, pumbaa.homeY - 10, 78, 42, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#f7f3ea';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(8, 16);
+  ctx.lineTo(w - 8, 16);
+  ctx.moveTo(8, 30);
+  ctx.lineTo(w - 8, 30);
+  ctx.stroke();
+  for (let x = 18; x < w - 8; x += 26) {
+    ctx.beginPath();
+    ctx.moveTo(x, 8);
+    ctx.lineTo(x, 40);
+    ctx.stroke();
+  }
+
+  flower(36, 62, '#ff8fab');
+  flower(w - 40, 70, '#ffe066');
+  flower(28, h - 28, '#b388ff');
+  flower(w - 34, h - 36, '#ff8fab');
+
+  // water bowl
+  ctx.beginPath();
+  ctx.ellipse(w * 0.22, h * 0.24, 16, 8, 0, 0, Math.PI * 2);
+  fillStroke('#d7dde2');
+  ctx.beginPath();
+  ctx.ellipse(w * 0.22, h * 0.232, 11, 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#4fc3f7';
+  ctx.fill();
+
+  // bed
+  roundRect(w * 0.72, h * 0.18, 58, 32, 10);
+  fillStroke('#a1887f');
+  ctx.beginPath();
+  ctx.ellipse(w * 0.72 + 29, h * 0.18 + 16, 18, 9, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#efebe9';
+  ctx.fill();
+}
+
+function flower(x, y, color) {
+  ctx.fillStyle = color;
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(a) * 5, y + Math.sin(a) * 5, 3.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#fff4c2';
+  ctx.beginPath();
+  ctx.arc(x, y, 2.4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawName(x, y, text) {
+  ctx.font = '700 13px Trebuchet MS, Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(text).width;
+  roundRect(x - tw / 2 - 6, y - 9, tw + 12, 18, 8);
+  ctx.fillStyle = 'rgba(255,250,243,0.92)';
+  ctx.fill();
+  ctx.fillStyle = '#1d1a17';
+  ctx.fillText(text, x, y);
+}
+
+function drawUF(scale) {
+  ctx.save();
+  ctx.scale(scale, scale);
+  ctx.font = '800 18px Trebuchet MS, Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.fillStyle = '#FF5C00';
+  ctx.fillText('UF', 0, 1);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#FF5C00';
+  ctx.strokeText('UF', 0, 1);
+  ctx.restore();
+}
+
+function looseY() {
+  if (!state.gatorsOn || state.farts <= 0) return 0;
+  return state.farts * 4 + Math.sin(state.time * 18) * state.farts * 1.4;
+}
+
+function drawJosh() {
+  const moving = Math.hypot(josh.vx, josh.vy) > 8;
+  const bob = Math.sin(state.time * (moving ? 12 : 2.2)) * (moving ? 2.2 : 1);
+  const step = moving ? Math.sin(state.time * 12) * 3.2 : 0;
+  const lean = Math.max(-7, Math.min(7, josh.vx * 0.02));
+  const sad = state.mode === 'falling' || state.mode === 'lose' || josh.flash > 0;
+  const reach = pumbaa.phase === 'happy' ? 1 : 0;
+
+  ctx.save();
+  ctx.translate(josh.x + lean, josh.y + bob);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 18, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#3a2a22';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-6, -12);
+  ctx.lineTo(-7, -1 + step);
+  ctx.moveTo(6, -12);
+  ctx.lineTo(8, -1 - step);
+  ctx.stroke();
+  ctx.fillStyle = '#1d1a17';
+  ctx.beginPath();
+  ctx.ellipse(-7, -1 + step, 5, 3, 0, 0, Math.PI * 2);
+  ctx.ellipse(8, -1 - step, 5, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  roundRect(-12, -20, 24, 12, 4);
+  fillStroke('#0021A5');
+
+  ctx.strokeStyle = '#e0b48a';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-15, -36);
+  ctx.lineTo(-22 - reach * 4, -24);
+  ctx.moveTo(15, -36);
+  ctx.lineTo(23 + reach * 6, -22 - reach * 6);
+  ctx.stroke();
+
+  roundRect(-18, -46, 36, 28, 8);
+  fillStroke('#0021A5');
+  if (josh.stain > 0) {
+    ctx.fillStyle = 'rgba(186, 255, 70, ' + Math.min(0.72, josh.stain) + ')';
+    ctx.beginPath();
+    ctx.ellipse(0, -31, 14, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (state.gatorsOn) {
+    ctx.save();
+    ctx.translate(0, -32 + looseY());
+    ctx.rotate(state.farts * 0.15);
+    drawUF(1.05);
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(0, -58, 13, 0, Math.PI * 2);
+  fillStroke('#e0b48a');
+  ctx.fillStyle = '#6b4423';
+  ctx.beginPath();
+  ctx.arc(-11, -58, 4, 0, Math.PI * 2);
+  ctx.arc(11, -58, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#1d1a17';
+  if (sad) {
+    ctx.beginPath();
+    ctx.moveTo(-7, -60);
+    ctx.lineTo(-3, -57);
+    ctx.moveTo(7, -60);
+    ctx.lineTo(3, -57);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#1d1a17';
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(-5, -59, 1.7, 0, Math.PI * 2);
+    ctx.arc(5, -59, 1.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#1d1a17';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  if (sad) ctx.arc(0, -50, 5, 1.2 * Math.PI, 1.8 * Math.PI);
+  else ctx.arc(0, -56, 5, 0.15 * Math.PI, 0.85 * Math.PI);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, -64, 13, Math.PI, 0);
+  ctx.fillStyle = '#0021A5';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#161311';
+  ctx.stroke();
+  roundRect(-16, -66, 32, 6, 2);
+  fillStroke('#001560');
+  ctx.beginPath();
+  ctx.arc(0, -70, 2.2, 0, Math.PI * 2);
+  ctx.fillStyle = '#4d6bff';
+  ctx.fill();
+  if (state.gatorsOn) {
+    ctx.save();
+    ctx.translate(0, -67 + looseY() * 0.65);
+    ctx.rotate(state.farts * 0.18);
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#f7f8ff';
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#161311';
+    ctx.stroke();
+    drawUF(0.62);
+    ctx.restore();
+  }
+  ctx.restore();
+  drawName(josh.x, Math.max(18, josh.y - 92), 'Josh');
+}
+
+function eye(x, y, happy) {
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.ellipse(x, y, 4.2, happy ? 2.1 : 4.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#161311';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  if (!happy) {
+    ctx.fillStyle = '#6b3e12';
+    ctx.beginPath();
+    ctx.arc(x + 1, y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawPumbaaFront(happy, worried) {
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 24, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(-12, -8, 7, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(12, -8, 7, 5, 0, 0, Math.PI * 2);
+  fillStroke('#141414');
+  ctx.beginPath();
+  ctx.ellipse(0, -30, 24, 18, 0, 0, Math.PI * 2);
+  fillStroke('#1b1b1b');
+  ctx.beginPath();
+  ctx.ellipse(0, -26, 11, 10, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#f4f4f4';
+  ctx.fill();
+  ctx.strokeStyle = '#d0d0d0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // collar
+  ctx.strokeStyle = '#FA4616';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(0, -42, 10, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(0, -56, 16, 15, 0, 0, Math.PI * 2);
+  fillStroke('#1b1b1b');
+  ctx.beginPath();
+  ctx.ellipse(-20, -50, 8, 13, -0.35, 0, Math.PI * 2);
+  fillStroke('#141414');
+  ctx.beginPath();
+  ctx.ellipse(-20, -48, 3.5, 7, -0.35, 0, Math.PI * 2);
+  ctx.fillStyle = '#5a3a32';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(20, -50, 8, 13, 0.35, 0, Math.PI * 2);
+  fillStroke('#141414');
+  ctx.beginPath();
+  ctx.ellipse(20, -48, 3.5, 7, 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = '#5a3a32';
+  ctx.fill();
+  ctx.strokeStyle = '#4a4a4a';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(0, -62, 7, Math.PI * 1.15, Math.PI * 1.85);
+  ctx.stroke();
+  eye(-6.5, -58, happy);
+  eye(6.5, -58, happy);
+  if (worried) {
+    ctx.strokeStyle = '#eee';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-12, -66);
+    ctx.lineTo(-4, -63);
+    ctx.moveTo(12, -66);
+    ctx.lineTo(4, -63);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.ellipse(0, -44, 12, 9, 0, 0, Math.PI * 2);
+  fillStroke('#3a3a3a');
+  ctx.beginPath();
+  ctx.ellipse(0, -37, 9, 4.5, 0, 0, Math.PI * 2);
+  fillStroke('#4a4a4a');
+  ctx.beginPath();
+  ctx.ellipse(0, -48, 4.2, 3.1, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+  if (happy) {
+    ctx.beginPath();
+    ctx.ellipse(0, -36, 3.2, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#f2a0b5';
+    ctx.fill();
+  }
+}
+
+function drawPumbaaBack(tailUp) {
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 24, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(-11, -8, 7, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(11, -8, 7, 5, 0, 0, Math.PI * 2);
+  fillStroke('#141414');
+  ctx.beginPath();
+  ctx.ellipse(0, -30, 22, 16, 0, 0, Math.PI * 2);
+  fillStroke('#1b1b1b');
+  ctx.beginPath();
+  ctx.ellipse(0, -52, 13, 11, 0, 0, Math.PI * 2);
+  fillStroke('#1b1b1b');
+  ctx.beginPath();
+  ctx.ellipse(-18, -46, 7, 12, -0.5, 0, Math.PI * 2);
+  fillStroke('#141414');
+  ctx.beginPath();
+  ctx.ellipse(18, -46, 7, 12, 0.5, 0, Math.PI * 2);
+  fillStroke('#141414');
+  ctx.strokeStyle = '#141414';
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (tailUp) {
+    ctx.moveTo(0, -20);
+    ctx.quadraticCurveTo(26, -28, 20, -52);
+  } else {
+    ctx.moveTo(0, -18);
+    ctx.quadraticCurveTo(14, -8, 6, 2);
+  }
+  ctx.stroke();
+  ctx.fillStyle = '#f4f4f4';
+  ctx.beginPath();
+  ctx.arc(tailUp ? 20 : 6, tailUp ? -52 : 2, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawPumbaaSide(happy) {
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 26, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#141414';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-18, -28);
+  ctx.quadraticCurveTo(-30, -40, -26, -50);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(-8, -8, 6, 4.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(14, -8, 6, 4.5, 0, 0, Math.PI * 2);
+  fillStroke('#141414');
+  ctx.beginPath();
+  ctx.ellipse(0, -28, 24, 14, 0, 0, Math.PI * 2);
+  fillStroke('#1b1b1b');
+  ctx.beginPath();
+  ctx.ellipse(10, -26, 8, 7, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#f4f4f4';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(24, -40, 14, 13, 0, 0, Math.PI * 2);
+  fillStroke('#1b1b1b');
+  ctx.beginPath();
+  ctx.ellipse(14, -52, 6, 10, -0.5, 0, Math.PI * 2);
+  fillStroke('#141414');
+  eye(28, -44, happy);
+  ctx.beginPath();
+  ctx.ellipse(36, -36, 9, 6.5, 0, 0, Math.PI * 2);
+  fillStroke('#2a2a2a');
+  ctx.beginPath();
+  ctx.ellipse(40, -32, 6, 3.2, 0, 0, Math.PI * 2);
+  fillStroke('#3a3a3a');
+  ctx.beginPath();
+  ctx.ellipse(44, -36, 3.4, 2.6, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+  if (happy) {
+    ctx.beginPath();
+    ctx.ellipse(40, -30, 2.6, 4, 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#f2a0b5';
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#FA4616';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(16, -34);
+  ctx.quadraticCurveTo(22, -30, 18, -26);
+  ctx.stroke();
+}
+
+function drawPumbaa() {
+  const happy = pumbaa.phase === 'happy' || pumbaa.phase === 'relieved' || state.mode === 'win';
+  const worried = state.mode === 'falling' || state.mode === 'lose';
+  const tailUp = pumbaa.phase === 'windup' || pumbaa.phase === 'farting';
+  ctx.save();
+  if (pumbaa.spinning) {
+    const cx = pumbaa.x;
+    const cy = pumbaa.y - 30;
+    ctx.translate(cx, cy);
+    ctx.rotate(pumbaa.spin);
+    ctx.translate(-cx, -cy);
+    ctx.translate(pumbaa.x, pumbaa.y);
+    drawPumbaaSide(true);
+  } else if (pumbaa.facing === 'left') {
+    ctx.translate(pumbaa.x, pumbaa.y);
+    ctx.scale(-1, 1);
+    drawPumbaaSide(happy);
+  } else if (pumbaa.facing === 'right') {
+    ctx.translate(pumbaa.x, pumbaa.y);
+    drawPumbaaSide(happy);
+  } else if (pumbaa.facing === 'up') {
+    ctx.translate(pumbaa.x, pumbaa.y);
+    drawPumbaaBack(tailUp || happy);
+  } else {
+    ctx.translate(pumbaa.x, pumbaa.y);
+    drawPumbaaFront(happy, worried);
+  }
+  ctx.restore();
+  const labelY = pumbaa.y - 82;
+  drawName(pumbaa.x, labelY < 48 ? pumbaa.y + 16 : labelY, 'Pumbaa');
+}
+
+function drawRange() {
+  if (state.mode !== 'play' || pumbaa.phase !== 'idle') return;
+  const p = pumbaaHit();
+  const d = Math.hypot(joshHit().x - p.x, joshHit().y - p.y);
+  if (d > PET_RANGE) return;
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(255, 176, 32, 0.95)';
+  ctx.beginPath();
+  ctx.arc(pumbaa.x, pumbaa.y - 34, 46, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDanger() {
+  if (state.mode !== 'play') return;
+  if (pumbaa.phase !== 'windup' && pumbaa.phase !== 'farting') return;
+  const from = pumbaaHit();
+  const ang = pumbaa.fartAng;
+  const x = from.x + Math.cos(ang) * 36;
+  const y = from.y + Math.sin(ang) * 36;
+  ctx.save();
+  ctx.setLineDash([10, 8]);
+  ctx.lineDashOffset = -state.time * 60;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + Math.cos(ang) * 168, y + Math.sin(ang) * 168);
+  ctx.lineWidth = 11;
+  ctx.strokeStyle = 'rgba(16, 48, 8, 0.9)';
+  ctx.stroke();
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = 'rgba(230, 255, 70, 1)';
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBubble(x, y, text) {
+  ctx.font = '700 15px Trebuchet MS, Segoe UI, sans-serif';
+  const tw = ctx.measureText(text).width;
+  const bw = tw + 16;
+  const bh = 26;
+  const bx = Math.max(8, Math.min(w - bw - 8, x - bw / 2));
+  const by = Math.max(8, y);
+  roundRect(bx, by, bw, bh, 10);
+  ctx.fillStyle = 'white';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#161311';
+  ctx.stroke();
+  ctx.fillStyle = '#14330f';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, bx + bw / 2, by + bh / 2);
+}
+
+function drawCloud(c) {
+  const grow = Math.min(1, c.age / 0.35);
+  const r = 18 + grow * 28;
+  const alpha = Math.max(0, Math.min(1, c.life / c.max));
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.globalAlpha = 0.45 + alpha * 0.5;
+  const blobs = [[0, 0, r], [-r * 0.45, -r * 0.15, r * 0.72], [r * 0.4, -r * 0.05, r * 0.66], [0, r * 0.28, r * 0.55]];
+  for (const [x, y, br] of blobs) {
+    const g = ctx.createRadialGradient(x, y, 1, x, y, br);
+    g.addColorStop(0, 'rgba(244, 255, 210, 0.95)');
+    g.addColorStop(0.45, 'rgba(170, 240, 60, 0.9)');
+    g.addColorStop(1, 'rgba(40, 140, 30, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, br, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawHeart(heart) {
+  const k = 1 - heart.age / heart.life;
+  ctx.save();
+  ctx.translate(heart.x, heart.y);
+  ctx.scale(heart.s * (0.8 + k * 0.4), heart.s * (0.8 + k * 0.4));
+  ctx.globalAlpha = Math.max(0, k);
+  ctx.fillStyle = '#ff4d6d';
+  ctx.beginPath();
+  ctx.moveTo(0, 3);
+  ctx.bezierCurveTo(-8, -2, -4, -8, 0, -3.5);
+  ctx.bezierCurveTo(4, -8, 8, -2, 0, 3);
+  ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  if (state.shake > 0.3) {
+    ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+  }
+  drawYard();
+  drawRange();
+  const sprites = [
+    { y: pumbaa.y, draw: drawPumbaa },
+    { y: josh.y, draw: drawJosh }
+  ];
+  sprites.sort((a, b) => a.y - b.y);
+  for (const s of sprites) s.draw();
+  drawDanger();
+  if (state.mode === 'play' && (pumbaa.phase === 'windup' || pumbaa.phase === 'farting') && state.pets <= 3) {
+    const side = josh.x > w * 0.55 ? -116 : 116;
+    drawBubble(josh.x + side, josh.y - 84, 'Step aside!');
+  }
+  for (const c of clouds) drawCloud(c);
+  for (const heart of hearts) drawHeart(heart);
+  for (const f of fallers) {
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rot);
+    drawUF(f.scale);
+    ctx.restore();
+  }
+  ctx.font = '700 14px Trebuchet MS, Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  for (const f of floats) {
+    ctx.globalAlpha = Math.max(0, 1 - f.age / f.life);
+    ctx.fillStyle = '#fffaf3';
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.globalAlpha = 1;
+  }
+  if (josh.flash > 0) {
+    ctx.fillStyle = 'rgba(170, 255, 80, ' + (josh.flash * 0.22) + ')';
+    ctx.fillRect(-20, -20, w + 40, h + 40);
+  }
+  ctx.restore();
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.033, (now - last) / 1000);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function resetKnob() {
+  const base = joy.clientWidth || 104;
+  const k = knob.clientWidth || 48;
+  knob.style.left = ((base - k) / 2) + 'px';
+  knob.style.top = ((base - k) / 2) + 'px';
+  state.jx = 0;
+  state.jy = 0;
+}
+
+function moveStick(e) {
+  const r = joy.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  let dx = e.clientX - cx;
+  let dy = e.clientY - cy;
+  const max = r.width / 2 - 6;
+  const mag = Math.hypot(dx, dy) || 1;
+  if (mag > max) {
+    dx = dx / mag * max;
+    dy = dy / mag * max;
+  }
+  knob.style.left = (r.width / 2 + dx - knob.clientWidth / 2) + 'px';
+  knob.style.top = (r.height / 2 + dy - knob.clientHeight / 2) + 'px';
+  state.jx = dx / max;
+  state.jy = dy / max;
+}
+
+joy.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  joyId = e.pointerId;
+  try { joy.setPointerCapture(e.pointerId); } catch (err) {}
+  moveStick(e);
+});
+window.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== joyId) return;
+  moveStick(e);
+});
+function endStick(e) {
+  if (e.pointerId !== joyId) return;
+  joyId = null;
+  resetKnob();
+}
+window.addEventListener('pointerup', endStick);
+window.addEventListener('pointercancel', endStick);
+
+petBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  tryPet();
+});
+
+let lastAct = 0;
+overlay.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const now = performance.now();
+  if (now - lastAct < 350) return;
+  lastAct = now;
+  if (btn.dataset.act === 'play') startGame();
+});
+
+muteBtn.addEventListener('click', () => {
+  state.muted = !state.muted;
+  muteBtn.textContent = state.muted ? 'Sound off' : 'Sound on';
+  if (!state.muted) {
+    ensureAudio();
+    sfx('start');
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+  keys.add(k);
+  if ((k === ' ' || k === 'enter') && !e.repeat && state.mode === 'play') tryPet();
+});
+window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+window.addEventListener('blur', () => { keys.clear(); joyId = null; resetKnob(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { keys.clear(); joyId = null; resetKnob(); }
+});
+
+window.addEventListener('resize', () => { resize(); clampJosh(); clampPumbaa(); });
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+buildMeters();
+resize();
+placeCharacters();
+showCard('title');
+resetKnob();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
