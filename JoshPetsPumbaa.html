@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -860,6 +860,10 @@ function drawJosh() {
   const lean = Math.max(-7, Math.min(7, josh.vx * 0.02));
   const sad = state.mode === 'falling' || state.mode === 'lose' || josh.flash > 0;
   const reach = pumbaa.phase === 'happy' ? 1 : 0;
+  const utFan = state.mode === 'falling' || state.mode === 'lose';
+  const cloth = utFan ? '#FF8200' : '#0021A5';
+  const brim = utFan ? '#E85D00' : '#001560';
+  const hatButton = utFan ? '#FFB15A' : '#4d6bff';
 
   ctx.save();
   ctx.translate(josh.x + lean, josh.y + bob);
@@ -896,7 +900,7 @@ function drawJosh() {
   ctx.stroke();
 
   roundRect(-18, -46, 36, 28, 8);
-  fillStroke('#0021A5');
+  fillStroke(cloth);
   if (josh.stain > 0) {
     ctx.fillStyle = 'rgba(186, 255, 70, ' + Math.min(0.72, josh.stain) + ')';
     ctx.beginPath();
@@ -945,16 +949,16 @@ function drawJosh() {
 
   ctx.beginPath();
   ctx.arc(0, -64, 13, Math.PI, 0);
-  ctx.fillStyle = '#0021A5';
+  ctx.fillStyle = cloth;
   ctx.fill();
   ctx.lineWidth = 3;
   ctx.strokeStyle = '#161311';
   ctx.stroke();
   roundRect(-16, -66, 32, 6, 2);
-  fillStroke('#001560');
+  fillStroke(brim);
   ctx.beginPath();
   ctx.arc(0, -70, 2.2, 0, Math.PI * 2);
-  ctx.fillStyle = '#4d6bff';
+  ctx.fillStyle = hatButton;
   ctx.fill();
   if (state.gatorsOn) {
     ctx.save();
@@ -990,78 +994,133 @@ function eye(x, y, happy) {
   }
 }
 
+function stubTail(x1, y1, x2, y2, bend) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.quadraticCurveTo((x1 + x2) / 2 + bend, (y1 + y2) / 2, x2, y2);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#161311';
+  ctx.lineWidth = 11;
+  ctx.stroke();
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 7;
+  ctx.stroke();
+}
+
+function whiteToes(spots) {
+  ctx.fillStyle = '#f7f7f7';
+  ctx.beginPath();
+  for (const [x, y] of spots) ctx.ellipse(x, y, 2.1, 1.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawPumbaaFront(happy, worried) {
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath();
-  ctx.ellipse(0, 2, 24, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 4, 26, 8, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(-12, -8, 7, 5, 0, 0, Math.PI * 2);
-  ctx.ellipse(12, -8, 7, 5, 0, 0, Math.PI * 2);
+
+  roundRect(-16, -18, 10, 14, 4);
+  fillStroke('#141414');
+  roundRect(6, -18, 10, 14, 4);
   fillStroke('#141414');
   ctx.beginPath();
-  ctx.ellipse(0, -30, 24, 18, 0, 0, Math.PI * 2);
+  ctx.ellipse(-11, -4, 7, 4, 0, 0, Math.PI * 2);
+  ctx.ellipse(11, -4, 7, 4, 0, 0, Math.PI * 2);
+  fillStroke('#141414');
+  whiteToes([[-14.2, -3.2], [-8, -2.4], [8, -2.4], [14.2, -3.2]]);
+
+  ctx.beginPath();
+  ctx.moveTo(-22, -48);
+  ctx.quadraticCurveTo(-26, -32, -16, -18);
+  ctx.lineTo(16, -18);
+  ctx.quadraticCurveTo(26, -32, 22, -48);
+  ctx.closePath();
   fillStroke('#1b1b1b');
   ctx.beginPath();
-  ctx.ellipse(0, -26, 11, 10, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#f4f4f4';
+  ctx.moveTo(0, -46);
+  ctx.quadraticCurveTo(8, -36, 5, -24);
+  ctx.quadraticCurveTo(0, -20, -5, -24);
+  ctx.quadraticCurveTo(-8, -36, 0, -46);
+  ctx.closePath();
+  ctx.fillStyle = '#f7f7f7';
   ctx.fill();
-  ctx.strokeStyle = '#d0d0d0';
   ctx.lineWidth = 2;
+  ctx.strokeStyle = '#161311';
   ctx.stroke();
-  // collar
+
   ctx.strokeStyle = '#FA4616';
   ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.arc(0, -42, 10, 0.2, Math.PI - 0.2);
+  ctx.moveTo(-14, -46);
+  ctx.quadraticCurveTo(0, -40, 14, -46);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(0, -56, 16, 15, 0, 0, Math.PI * 2);
+
+  roundRect(-24, -74, 48, 24, 8);
   fillStroke('#1b1b1b');
+  function cropEar(side) {
+    ctx.save();
+    ctx.scale(side, 1);
+    ctx.beginPath();
+    ctx.moveTo(-14, -70);
+    ctx.quadraticCurveTo(-36, -62, -28, -48);
+    ctx.quadraticCurveTo(-18, -44, -10, -58);
+    ctx.closePath();
+    fillStroke('#141414');
+    ctx.beginPath();
+    ctx.moveTo(-16, -64);
+    ctx.quadraticCurveTo(-30, -58, -24, -50);
+    ctx.quadraticCurveTo(-18, -48, -14, -58);
+    ctx.closePath();
+    ctx.fillStyle = '#6a4038';
+    ctx.fill();
+    ctx.restore();
+  }
+  cropEar(1);
+  cropEar(-1);
+  ctx.strokeStyle = '#9a9a9a';
+  ctx.lineWidth = 1.7;
   ctx.beginPath();
-  ctx.ellipse(-20, -50, 8, 13, -0.35, 0, Math.PI * 2);
-  fillStroke('#141414');
-  ctx.beginPath();
-  ctx.ellipse(-20, -48, 3.5, 7, -0.35, 0, Math.PI * 2);
-  ctx.fillStyle = '#5a3a32';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(20, -50, 8, 13, 0.35, 0, Math.PI * 2);
-  fillStroke('#141414');
-  ctx.beginPath();
-  ctx.ellipse(20, -48, 3.5, 7, 0.35, 0, Math.PI * 2);
-  ctx.fillStyle = '#5a3a32';
-  ctx.fill();
-  ctx.strokeStyle = '#4a4a4a';
-  ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.arc(0, -62, 7, Math.PI * 1.15, Math.PI * 1.85);
+  ctx.moveTo(-12, -71);
+  ctx.quadraticCurveTo(0, -69, 12, -71);
+  ctx.moveTo(-9, -68);
+  ctx.quadraticCurveTo(0, -66.5, 9, -68);
   ctx.stroke();
-  eye(-6.5, -58, happy);
-  eye(6.5, -58, happy);
+
   if (worried) {
-    ctx.strokeStyle = '#eee';
+    ctx.strokeStyle = '#f4f4f4';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(-12, -66);
-    ctx.lineTo(-4, -63);
-    ctx.moveTo(12, -66);
-    ctx.lineTo(4, -63);
+    ctx.moveTo(-14, -70);
+    ctx.lineTo(-6, -66);
+    ctx.moveTo(14, -70);
+    ctx.lineTo(6, -66);
     ctx.stroke();
   }
+  eye(-9, -63, happy);
+  eye(9, -63, happy);
+
+  roundRect(-16, -58, 32, 13, 5);
+  fillStroke('#2c2c2c');
   ctx.beginPath();
-  ctx.ellipse(0, -44, 12, 9, 0, 0, Math.PI * 2);
-  fillStroke('#3a3a3a');
-  ctx.beginPath();
-  ctx.ellipse(0, -37, 9, 4.5, 0, 0, Math.PI * 2);
-  fillStroke('#4a4a4a');
-  ctx.beginPath();
-  ctx.ellipse(0, -48, 4.2, 3.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -56, 5.4, 3.2, 0, 0, Math.PI * 2);
   ctx.fillStyle = '#111';
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.beginPath();
+  ctx.ellipse(-1.6, -57, 1.3, 0.7, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0, -48, 15, 4.6, 0, 0, Math.PI * 2);
+  fillStroke('#3a3a3a');
+  ctx.fillStyle = '#f7f7f7';
+  ctx.beginPath();
+  ctx.ellipse(0, -47.6, 4.2, 1.8, 0, 0, Math.PI * 2);
   ctx.fill();
   if (happy) {
     ctx.beginPath();
-    ctx.ellipse(0, -36, 3.2, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(2, -44, 2.8, 4.4, 0.2, 0, Math.PI * 2);
     ctx.fillStyle = '#f2a0b5';
     ctx.fill();
   }
@@ -1070,94 +1129,131 @@ function drawPumbaaFront(happy, worried) {
 function drawPumbaaBack(tailUp) {
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath();
-  ctx.ellipse(0, 2, 24, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 4, 24, 7, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(-11, -8, 7, 5, 0, 0, Math.PI * 2);
-  ctx.ellipse(11, -8, 7, 5, 0, 0, Math.PI * 2);
+
+  roundRect(-16, -16, 9, 12, 3);
+  fillStroke('#141414');
+  roundRect(7, -16, 9, 12, 3);
   fillStroke('#141414');
   ctx.beginPath();
-  ctx.ellipse(0, -30, 22, 16, 0, 0, Math.PI * 2);
+  ctx.ellipse(-11, -4, 6.6, 3.8, 0, 0, Math.PI * 2);
+  ctx.ellipse(11, -4, 6.6, 3.8, 0, 0, Math.PI * 2);
+  fillStroke('#141414');
+  whiteToes([[-14, -3], [14, -3]]);
+
+  roundRect(-18, -42, 36, 26, 8);
   fillStroke('#1b1b1b');
-  ctx.beginPath();
-  ctx.ellipse(0, -52, 13, 11, 0, 0, Math.PI * 2);
+  roundRect(-16, -70, 32, 26, 7);
   fillStroke('#1b1b1b');
-  ctx.beginPath();
-  ctx.ellipse(-18, -46, 7, 12, -0.5, 0, Math.PI * 2);
-  fillStroke('#141414');
-  ctx.beginPath();
-  ctx.ellipse(18, -46, 7, 12, 0.5, 0, Math.PI * 2);
-  fillStroke('#141414');
-  ctx.strokeStyle = '#141414';
-  ctx.lineWidth = 8;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  if (tailUp) {
-    ctx.moveTo(0, -20);
-    ctx.quadraticCurveTo(26, -28, 20, -52);
-  } else {
-    ctx.moveTo(0, -18);
-    ctx.quadraticCurveTo(14, -8, 6, 2);
+  function backEar(side) {
+    ctx.save();
+    ctx.scale(side, 1);
+    ctx.beginPath();
+    ctx.moveTo(-8, -64);
+    ctx.quadraticCurveTo(-28, -60, -22, -48);
+    ctx.quadraticCurveTo(-14, -44, -6, -56);
+    ctx.closePath();
+    fillStroke('#141414');
+    ctx.restore();
   }
-  ctx.stroke();
-  ctx.fillStyle = '#f4f4f4';
-  ctx.beginPath();
-  ctx.arc(tailUp ? 20 : 6, tailUp ? -52 : 2, 4.5, 0, Math.PI * 2);
-  ctx.fill();
+  backEar(1);
+  backEar(-1);
+  stubTail(0, -22, tailUp ? 16 : 4, tailUp ? -38 : -34, tailUp ? 8 : 2);
 }
 
 function drawPumbaaSide(happy) {
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath();
-  ctx.ellipse(0, 2, 26, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 4, 30, 7, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = '#141414';
-  ctx.lineWidth = 6;
+
+  roundRect(-20, -18, 8, 14, 3);
+  fillStroke('#141414');
+  roundRect(8, -20, 8, 16, 3);
+  fillStroke('#141414');
+  ctx.beginPath();
+  ctx.ellipse(-16, -4, 6, 3.6, 0, 0, Math.PI * 2);
+  ctx.ellipse(12, -4, 6.6, 3.8, 0, 0, Math.PI * 2);
+  fillStroke('#141414');
+  whiteToes([[16, -3.2], [10.2, -2.5]]);
+
+  stubTail(-18, -30, -14, -46, -2);
+
+  ctx.beginPath();
+  ctx.moveTo(-18, -24);
+  ctx.lineTo(-16, -36);
+  ctx.lineTo(8, -36);
+  ctx.quadraticCurveTo(22, -34, 20, -20);
+  ctx.lineTo(16, -12);
+  ctx.quadraticCurveTo(4, -16, -6, -18);
+  ctx.quadraticCurveTo(-16, -18, -18, -24);
+  ctx.closePath();
+  fillStroke('#1b1b1b');
+  ctx.beginPath();
+  ctx.moveTo(6, -30);
+  ctx.lineTo(16, -18);
+  ctx.lineTo(14, -12);
+  ctx.lineTo(4, -18);
+  ctx.closePath();
+  ctx.fillStyle = '#f7f7f7';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#161311';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(2, -34);
+  ctx.lineTo(14, -46);
+  ctx.lineTo(18, -32);
+  ctx.lineTo(8, -28);
+  ctx.closePath();
+  fillStroke('#1b1b1b');
+  ctx.strokeStyle = '#FA4616';
+  ctx.lineWidth = 3.5;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(-18, -28);
-  ctx.quadraticCurveTo(-30, -40, -26, -50);
+  ctx.moveTo(6, -32);
+  ctx.quadraticCurveTo(14, -26, 12, -20);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(-8, -8, 6, 4.5, 0, 0, Math.PI * 2);
-  ctx.ellipse(14, -8, 6, 4.5, 0, 0, Math.PI * 2);
-  fillStroke('#141414');
-  ctx.beginPath();
-  ctx.ellipse(0, -28, 24, 14, 0, 0, Math.PI * 2);
+
+  roundRect(8, -64, 24, 24, 6);
   fillStroke('#1b1b1b');
   ctx.beginPath();
-  ctx.ellipse(10, -26, 8, 7, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#f4f4f4';
+  ctx.moveTo(14, -58);
+  ctx.quadraticCurveTo(6, -78, 22, -64);
+  ctx.quadraticCurveTo(24, -52, 14, -50);
+  ctx.closePath();
+  fillStroke('#141414');
+  ctx.beginPath();
+  ctx.moveTo(16, -58);
+  ctx.quadraticCurveTo(12, -70, 20, -60);
+  ctx.quadraticCurveTo(20, -54, 16, -52);
+  ctx.closePath();
+  ctx.fillStyle = '#6a4038';
+  ctx.fill();
+
+  eye(20, -54, happy);
+
+  roundRect(28, -54, 14, 11, 3);
+  fillStroke('#2c2c2c');
+  ctx.beginPath();
+  ctx.ellipse(40, -51, 3.2, 2.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(24, -40, 14, 13, 0, 0, Math.PI * 2);
-  fillStroke('#1b1b1b');
-  ctx.beginPath();
-  ctx.ellipse(14, -52, 6, 10, -0.5, 0, Math.PI * 2);
-  fillStroke('#141414');
-  eye(28, -44, happy);
-  ctx.beginPath();
-  ctx.ellipse(36, -36, 9, 6.5, 0, 0, Math.PI * 2);
-  fillStroke('#2a2a2a');
-  ctx.beginPath();
-  ctx.ellipse(40, -32, 6, 3.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(38, -44, 9, 3.6, 0.08, 0, Math.PI * 2);
   fillStroke('#3a3a3a');
+  ctx.fillStyle = '#f7f7f7';
   ctx.beginPath();
-  ctx.ellipse(44, -36, 3.4, 2.6, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#111';
+  ctx.ellipse(42, -43.4, 2.8, 1.4, 0.1, 0, Math.PI * 2);
   ctx.fill();
   if (happy) {
     ctx.beginPath();
-    ctx.ellipse(40, -30, 2.6, 4, 0.4, 0, Math.PI * 2);
+    ctx.ellipse(43, -40, 2.2, 3.4, 0.35, 0, Math.PI * 2);
     ctx.fillStyle = '#f2a0b5';
     ctx.fill();
   }
-  ctx.strokeStyle = '#FA4616';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(16, -34);
-  ctx.quadraticCurveTo(22, -30, 18, -26);
-  ctx.stroke();
 }
 
 function drawPumbaa() {
@@ -1188,7 +1284,7 @@ function drawPumbaa() {
     drawPumbaaFront(happy, worried);
   }
   ctx.restore();
-  const labelY = pumbaa.y - 82;
+  const labelY = pumbaa.y - 108;
   drawName(pumbaa.x, labelY < 48 ? pumbaa.y + 16 : labelY, 'Pumbaa');
 }
 
